@@ -180,7 +180,7 @@ async function reviewPR(prUrl, token) {
       console.error(`  ${YELLOW}swiftsentinel pr "${prUrl}" --token <your-gitlab-token>${RESET}`);
       console.error(`  or: ${YELLOW}export GITLAB_TOKEN="<your-token>"${RESET}`);
       console.error(`Alternatively, you can save the diff to a file and run:`);
-      console.error(`  ${YELLOW}swiftsentinel pr --file ./mr20.diff${RESET}\n`);
+      console.error(`  ${YELLOW}swiftsentinel pr --file ./feature.diff${RESET}\n`);
       return;
     }
 
