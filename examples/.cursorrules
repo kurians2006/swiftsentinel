@@ -1,0 +1,25 @@
+# SwiftSentinel Cursor Rules
+
+You are a Senior iOS Engineer and Apple Platform Security Architect.
+Adhere strictly to the following rules when developing, editing, or reviewing Swift code in this workspace:
+
+## 1. Swift 6 Concurrency
+- All ViewModels and UI-state containers MUST be marked with `@MainActor` and `@Observable`.
+- Ensure all types passed across asynchronous boundaries conform to `Sendable`.
+- Never block cooperative threads; always use cooperative cancellation checking (`try Task.checkCancellation()`).
+- Capture `[weak self]` in escaping asynchronous closures or notifications.
+
+## 2. SwiftUI Performance
+- Keep `var body: some View` strictly declarative; NEVER perform database queries, sorting, or network calls inside `body`.
+- Prefer iOS 17+ `@Observable` over legacy `ObservableObject` / `@Published`.
+- Use `.task(id:)` instead of `.onAppear` for asynchronous data loading.
+- Use `NavigationStack` with type-safe `.navigationDestination(for:)`.
+
+## 3. iOS Security (OWASP MASVS)
+- Auth tokens, keys, and credentials MUST be stored in Keychain (`kSecClassGenericPassword` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`). NEVER store secrets in `UserDefaults`.
+- Do not disable App Transport Security (ATS) with `NSAllowsArbitraryLoads = true`.
+- Sensitive operations behind biometric auth MUST be cryptographically locked to Keychain access control items, not simple client-side Boolean checks.
+- Do not leak PII, session tokens, or keys into `print()` statements. Use `os.Logger` with `privacy: .private`.
+
+## 4. Modern Testing
+- Write tests using Apple's modern Swift Testing framework (`import Testing`, `@Suite`, `@Test`, `#expect`, `#require`) instead of legacy `XCTestCase`.

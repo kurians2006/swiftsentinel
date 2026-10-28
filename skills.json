@@ -1,0 +1,29 @@
+{
+  "$schema": "https://skills.sh/schema.json",
+  "name": "swiftsentinel",
+  "version": "1.0.0",
+  "description": "Production-grade iOS, Swift 6, SwiftUI development, security auditing, and PR code review agent suite.",
+  "author": "SwiftSentinel Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swiftsentinel/swiftsentinel"
+  },
+  "skills": [
+    {
+      "name": "ios-code-review",
+      "path": "packages/skills/ios-code-review/SKILL.md",
+      "description": "Audits and reviews iOS, Swift, and SwiftUI pull requests, git diffs, and source files."
+    },
+    {
+      "name": "ios-security-audit",
+      "path": "packages/skills/ios-security-audit/SKILL.md",
+      "description": "Audits iOS applications for OWASP MASVS vulnerabilities, Keychain misuse, and runtime tamper vectors."
+    },
+    {
+      "name": "swiftui-architect",
+      "path": "packages/skills/swiftui-architect/SKILL.md",
+      "description": "Designs and refactors modern SwiftUI architectures using Observation, Swift 6, and NavigationStack."
+    }
+  ]
+}

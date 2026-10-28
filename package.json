@@ -1,0 +1,24 @@
+{
+  "name": "swiftsentinel",
+  "version": "1.0.0",
+  "description": "Production-grade iOS, Swift 6, SwiftUI development, security auditing, and PR code review agent suite.",
+  "main": "packages/github-action/src/review.js",
+  "scripts": {
+    "test": "node packages/github-action/src/review.js --dry-run"
+  },
+  "keywords": [
+    "ios",
+    "swift",
+    "swiftui",
+    "swift-6",
+    "code-review",
+    "security-audit",
+    "owasp-masvs",
+    "agent-skills",
+    "antigravity",
+    "cursor",
+    "claude-code"
+  ],
+  "author": "SwiftSentinel Contributors",
+  "license": "MIT"
+}

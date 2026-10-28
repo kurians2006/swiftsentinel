@@ -1,0 +1,25 @@
+name: 'SwiftSentinel PR Reviewer'
+description: 'Autonomous AI Code Reviewer and Security Auditor for iOS, Swift & SwiftUI pull requests'
+author: 'SwiftSentinel Contributors'
+inputs:
+  github-token:
+    description: 'GitHub token with PR comment and review permissions'
+    required: true
+    default: ${{ github.token }}
+  api-key:
+    description: 'LLM API Key (Gemini, Claude, or OpenAI)'
+    required: true
+  model:
+    description: 'Model to use for review'
+    required: false
+    default: 'gemini-2.5-pro'
+  fail-on-critical:
+    description: 'Whether to fail the CI job if Critical vulnerabilities or concurrency races are detected'
+    required: false
+    default: 'false'
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+branding:
+  icon: 'shield'
+  color: 'blue'
