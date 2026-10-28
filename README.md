@@ -30,7 +30,7 @@ Generic LLMs struggle with the "Swift Problem": suggesting deprecated UIKit para
 Install directly into your agent environment using the open-source Agent Skills catalog:
 ```bash
 # Add all skills to your project
-npx skills add <your-github-username>/swiftsentinel --all
+npx skills add kurians2006/swiftsentinel --all
 ```
 
 ### Option 2: Use with Google Antigravity
