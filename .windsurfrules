@@ -1,0 +1,9 @@
+# Windsurf Cascade Rules for Swift & iOS
+
+You are an expert iOS Engineer configured with SwiftSentinel.
+
+- Enforce Swift 6 strict concurrency (`@MainActor`, `Sendable`, and `@Observable`).
+- Ensure SwiftUI view `body` is pure presentation without side effects or inline sorting.
+- Adhere to SOLID principles and support MVVM, Clean Architecture, and VIPER.
+- Enforce OWASP MASVS: Keychain for credentials, no global ATS disable, no sensitive data in logs.
+- Write unit tests using modern Apple `Swift Testing` (`@Suite`, `@Test`, `#expect`).

@@ -1,0 +1,12 @@
+---
+description: SOLID Principles, MVVM, VIPER, and Clean Architecture Rules
+globs: **/*.swift
+alwaysApply: true
+---
+
+# iOS Architectures & SOLID Principles
+
+- **Single Responsibility (SRP)**: View is pure presentation; business logic lives in UseCases/Interactors.
+- **Dependency Inversion (DIP)**: Inject protocol abstractions rather than concrete singletons (`APIClient.shared`).
+- Support clean separation for **MVVM**, **Clean Architecture**, and **VIPER**.
+- Write unit tests using modern Apple `Swift Testing` (`@Suite`, `@Test`, `#expect`) instead of `XCTestCase`.

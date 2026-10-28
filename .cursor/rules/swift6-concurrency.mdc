@@ -1,0 +1,12 @@
+---
+description: Swift 6 Concurrency and Actor Isolation rules
+globs: **/*.swift
+alwaysApply: true
+---
+
+# Swift 6 Concurrency & Actor Isolation Rules
+
+- ViewModels and UI state containers must be isolated with `@MainActor` and marked with `@Observable`.
+- All data models passing across asynchronous task boundaries must conform to `Sendable`.
+- Handle cooperative task cancellation with `try Task.checkCancellation()`.
+- Capture `[weak self]` in escaping asynchronous closures to prevent memory retain cycles.

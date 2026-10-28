@@ -1,0 +1,13 @@
+---
+description: iOS Security and OWASP MASVS Auditing Rules
+globs: **/*.swift, **/Info.plist
+alwaysApply: true
+---
+
+# iOS Security Rules (OWASP MASVS)
+
+- Auth tokens, API keys, and sensitive data MUST be stored in Keychain (`kSecClassGenericPassword` with `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`). Never store credentials in `UserDefaults`.
+- Never disable ATS globally (`NSAllowsArbitraryLoads = true`).
+- Protect biometrics with Keychain AccessControl (`kSecAttrAccessControl`); avoid client-side boolean checks.
+- Devirtualize sensitive security handlers (`final` classes) to prevent runtime method swizzling.
+- Use `os.Logger` with `privacy: .private` for sensitive data.

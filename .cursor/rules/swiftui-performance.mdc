@@ -1,0 +1,12 @@
+---
+description: SwiftUI Architecture and Performance Rules
+globs: **/*.swift
+alwaysApply: true
+---
+
+# SwiftUI Architecture & Performance Rules
+
+- Prefer iOS 17+ `@Observable` over legacy `ObservableObject` / `@Published`.
+- Never execute database queries, network requests, or expensive sorting in `var body: some View`.
+- Use `.task(id:)` instead of `.onAppear` for asynchronous work.
+- Use `NavigationStack` with type-safe `.navigationDestination(for:)`.
