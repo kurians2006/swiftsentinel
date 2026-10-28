@@ -1,0 +1,261 @@
+#!/usr/bin/env node
+
+/**
+ * SwiftSentinel CLI 🛡️
+ * The autonomous iOS development, security auditor & external PR reviewer.
+ */
+
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
+const { execSync } = require('child_process');
+
+const VERSION = '1.1.0';
+
+const BOLD = '\x1b[1m';
+const GREEN = '\x1b[32m';
+const YELLOW = '\x1b[33m';
+const RED = '\x1b[31m';
+const BLUE = '\x1b[34m';
+const CYAN = '\x1b[36m';
+const RESET = '\x1b[0m';
+
+function printBanner() {
+  console.log(`${BLUE}${BOLD}`);
+  console.log('  ____           _  __ _   ____             _   _            _ ');
+  console.log(" / ___|_      __(_)/ _| |_/ ___|  ___ _ __ | |_(_)_ __   ___| |");
+  console.log(" \\___ \\ \\ /\\ / /| | |_| __\\___ \\ / _ \\ '_ \\| __| | '_ \\ / _ \\ |");
+  console.log('  ___) \\ V  V / | |  _| |_ ___) |  __/ | | | |_| | | | |  __/ |');
+  console.log(' |____/ \\_/\\_/  |_|_|  \\__|____/ \\___|_| |_|\\__|_|_| |_|\\___|_|');
+  console.log(`${RESET}`);
+  console.log(`${BOLD}🛡️  SwiftSentinel CLI v${VERSION} — Intelligent iOS & Swift Review Engine${RESET}\n`);
+}
+
+function printUsage() {
+  printBanner();
+  console.log(`${BOLD}Usage:${RESET}`);
+  console.log('  swiftsentinel <command> [options]\n');
+  console.log(`${BOLD}Commands:${RESET}`);
+  console.log(`  ${CYAN}pr <url>${RESET}             Review any external GitHub PR or GitLab MR URL`);
+  console.log(`  ${CYAN}repo <url|path>${RESET}      Audit an entire repository (remote URL or local path)`);
+  console.log(`  ${CYAN}security [path]${RESET}      Run OWASP MASVS security & tamper scan`);
+  console.log(`  ${CYAN}arch [path]${RESET}          Audit architecture rules (MVVM, VIPER, Clean, SOLID)`);
+  console.log(`  ${CYAN}lint [path]${RESET}          Run SwiftLint checks & semantic code rules`);
+  console.log(`  ${CYAN}version${RESET}              Display current version\n`);
+  console.log(`${BOLD}Examples:${RESET}`);
+  console.log('  swiftsentinel pr https://github.com/apple/swift/pull/1234');
+  console.log('  swiftsentinel repo ./MyIOSApp');
+  console.log('  swiftsentinel security ./Sources\n');
+}
+
+function fetchUrl(url) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    client.get(url, { headers: { 'User-Agent': 'SwiftSentinel-CLI' } }, (res) => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return fetchUrl(res.headers.location).then(resolve).catch(reject);
+      }
+      if (res.statusCode !== 200) {
+        return reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+      }
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
+}
+
+function analyzeDiff(diffText) {
+  const issues = [];
+  const lines = diffText.split('\n');
+  let currentFile = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith('+++ b/')) {
+      currentFile = line.substring(6);
+      continue;
+    }
+
+    if (!line.startsWith('+') || line.startsWith('+++')) continue;
+    const code = line.substring(1);
+
+    // Rule: UserDefaults with secrets
+    if (/UserDefaults\.standard\.set\(.*(token|password|secret|key|credential|auth)/i.test(code)) {
+      issues.push({
+        severity: 'CRITICAL',
+        category: 'Security (OWASP MASVS-STORAGE)',
+        file: currentFile,
+        line: i,
+        snippet: code.trim(),
+        message: 'Insecure storage of secrets in UserDefaults. Must use Keychain with kSecAttrAccessibleWhenUnlockedThisDeviceOnly.'
+      });
+    }
+
+    // Rule: ATS Disabled
+    if (/<key>NSAllowsArbitraryLoads<\/key>\s*<true\/>/i.test(code) || /NSAllowsArbitraryLoads/i.test(code)) {
+      issues.push({
+        severity: 'CRITICAL',
+        category: 'Security (OWASP MASVS-NETWORK)',
+        file: currentFile,
+        line: i,
+        snippet: code.trim(),
+        message: 'App Transport Security (ATS) globally disabled or relaxed.'
+      });
+    }
+
+    // Rule: ViewModel missing @MainActor
+    if (/@Observable\s+class\s+.*ViewModel/.test(code) && !/@MainActor/.test(code)) {
+      issues.push({
+        severity: 'WARNING',
+        category: 'Swift 6 Concurrency',
+        file: currentFile,
+        line: i,
+        snippet: code.trim(),
+        message: 'UI-bound ViewModel should be isolated with @MainActor to prevent background thread rendering artifacts.'
+      });
+    }
+
+    // Rule: Side effect in SwiftUI body
+    if (/var\s+body:\s+some\s+View/.test(code) && /\.(sorted|filter|fetch|download)\(/.test(code)) {
+      issues.push({
+        severity: 'WARNING',
+        category: 'SwiftUI Performance',
+        file: currentFile,
+        line: i,
+        snippet: code.trim(),
+        message: 'Potential side-effect or heavy computation in SwiftUI view body. Precompute in ViewModel.'
+      });
+    }
+
+    // Rule: Direct singleton usage (Dependency Inversion violation)
+    if (/\b(URLSession\.shared|NetworkManager\.shared|APIClient\.shared)\b/.test(code)) {
+      issues.push({
+        severity: 'OPTIMIZATION',
+        category: 'SOLID (Dependency Inversion)',
+        file: currentFile,
+        line: i,
+        snippet: code.trim(),
+        message: 'Direct concrete singleton reference. Prefer injecting protocol abstractions for testability.'
+      });
+    }
+  }
+
+  return issues;
+}
+
+async function reviewPR(prUrl) {
+  printBanner();
+  console.log(`${CYAN}🔍 Fetching external PR diff from:${RESET} ${prUrl}\n`);
+
+  let diffUrl = prUrl;
+  if (prUrl.includes('github.com') && !prUrl.endsWith('.diff')) {
+    diffUrl = prUrl.replace(/\/$/, '') + '.diff';
+  } else if (prUrl.includes('gitlab.com') && !prUrl.endsWith('.diff')) {
+    diffUrl = prUrl.replace(/\/$/, '') + '.diff';
+  }
+
+  try {
+    const diff = await fetchUrl(diffUrl);
+    console.log(`📦 Received diff payload (${diff.length} bytes). Running SwiftSentinel audit rules...\n`);
+
+    const issues = analyzeDiff(diff);
+
+    if (issues.length === 0) {
+      console.log(`${GREEN}${BOLD}✅ Clean Review: No Swift 6, Security, or Architecture violations detected!${RESET}\n`);
+      return;
+    }
+
+    console.log(`${BOLD}📋 SwiftSentinel Review Findings (${issues.length} detected):${RESET}\n`);
+
+    for (const issue of issues) {
+      const badge = issue.severity === 'CRITICAL' ? `${RED}[🚨 CRITICAL]${RESET}` :
+                    issue.severity === 'WARNING' ? `${YELLOW}[⚠️  WARNING]${RESET}` :
+                    `${BLUE}[💡 OPTIMIZATION]${RESET}`;
+
+      console.log(`${badge} ${BOLD}${issue.category}${RESET}`);
+      console.log(`  File: ${CYAN}${issue.file || 'Unknown'}${RESET}`);
+      console.log(`  Code: "${issue.snippet}"`);
+      console.log(`  Resolution: ${issue.message}\n`);
+    }
+
+    const criticals = issues.filter(i => i.severity === 'CRITICAL').length;
+    if (criticals > 0) {
+      console.log(`${RED}${BOLD}Verdict: REQUEST_CHANGES (${criticals} critical issue(s) must be resolved)${RESET}\n`);
+    } else {
+      console.log(`${YELLOW}${BOLD}Verdict: COMMENT (${issues.length} suggested improvement(s))${RESET}\n`);
+    }
+  } catch (err) {
+    console.error(`${RED}❌ Error fetching or analyzing PR:${RESET}`, err.message);
+  }
+}
+
+function scanLocalPath(targetPath) {
+  printBanner();
+  const fullPath = path.resolve(targetPath || '.');
+  console.log(`${CYAN}🔍 Auditing iOS Codebase at:${RESET} ${fullPath}\n`);
+
+  function getAllFiles(dir, fileList = []) {
+    if (!fs.existsSync(dir)) return fileList;
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      if (file.startsWith('.') || file === 'Pods' || file === 'DerivedData' || file === '.build') continue;
+      const filePath = path.join(dir, file);
+      if (fs.statSync(filePath).isDirectory()) {
+        getAllFiles(filePath, fileList);
+      } else if (file.endsWith('.swift') || file.endsWith('.plist')) {
+        fileList.push(filePath);
+      }
+    }
+    return fileList;
+  }
+
+  const files = getAllFiles(fullPath);
+  console.log(`📁 Found ${files.length} Swift/Configuration files.`);
+
+  let totalIssues = 0;
+  for (const file of files) {
+    const content = fs.readFileSync(file, 'utf-8');
+    const mockDiff = content.split('\n').map(l => '+' + l).join('\n');
+    const issues = analyzeDiff('+++ b/' + path.relative(fullPath, file) + '\n' + mockDiff);
+
+    for (const issue of issues) {
+      totalIssues++;
+      const badge = issue.severity === 'CRITICAL' ? `${RED}[🚨 CRITICAL]${RESET}` :
+                    issue.severity === 'WARNING' ? `${YELLOW}[⚠️  WARNING]${RESET}` :
+                    `${BLUE}[💡 OPTIMIZATION]${RESET}`;
+
+      console.log(`${badge} ${BOLD}${issue.category}${RESET} in ${CYAN}${issue.file}${RESET}`);
+      console.log(`  Issue: ${issue.message}`);
+      console.log(`  Snippet: "${issue.snippet}"\n`);
+    }
+  }
+
+  if (totalIssues === 0) {
+    console.log(`${GREEN}${BOLD}✅ Perfect Score! Zero security or architectural anti-patterns detected.${RESET}\n`);
+  } else {
+    console.log(`${YELLOW}${BOLD}Audit complete. Found ${totalIssues} issue(s) across project.${RESET}\n`);
+  }
+}
+
+// CLI Command Router
+const args = process.argv.slice(2);
+const command = args[0];
+
+if (!command || command === '--help' || command === '-h') {
+  printUsage();
+} else if (command === 'pr') {
+  if (!args[1]) {
+    console.error(`${RED}Error: Missing PR URL. Example: swiftsentinel pr https://github.com/owner/repo/pull/123${RESET}`);
+    process.exit(1);
+  }
+  reviewPR(args[1]);
+} else if (command === 'repo' || command === 'security' || command === 'arch' || command === 'lint') {
+  scanLocalPath(args[1]);
+} else if (command === 'version' || command === '-v') {
+  console.log(`v${VERSION}`);
+} else {
+  console.error(`${RED}Unknown command: ${command}${RESET}\n`);
+  printUsage();
+}

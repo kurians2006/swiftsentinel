@@ -62,6 +62,11 @@ echo -e "\n${BOLD}4. Installing Antigravity & Agent Skills:${NC}"
 fetch_file "packages/skills/ios-code-review/SKILL.md" "${TARGET_DIR}/.gemini/skills/ios-code-review/SKILL.md"
 fetch_file "packages/skills/ios-security-audit/SKILL.md" "${TARGET_DIR}/.gemini/skills/ios-security-audit/SKILL.md"
 fetch_file "packages/skills/swiftui-architect/SKILL.md" "${TARGET_DIR}/.gemini/skills/swiftui-architect/SKILL.md"
+fetch_file "packages/skills/external-pr-reviewer/SKILL.md" "${TARGET_DIR}/.gemini/skills/external-pr-reviewer/SKILL.md"
+
+echo -e "\n${BOLD}5. Installing Standalone SwiftSentinel CLI:${NC}"
+fetch_file "bin/swiftsentinel" "${TARGET_DIR}/bin/swiftsentinel"
+chmod +x "${TARGET_DIR}/bin/swiftsentinel" 2>/dev/null || true
 
 echo -e "\n${GREEN}${BOLD}🎉 SwiftSentinel successfully installed!${NC}"
 echo -e "Your workspace is now armed with Swift 6, SwiftUI, OWASP MASVS, MVVM, VIPER, Clean Architecture, and SOLID rules."

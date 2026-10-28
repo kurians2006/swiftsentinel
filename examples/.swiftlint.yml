@@ -1,0 +1,64 @@
+parent_config: null
+
+disabled_rules:
+  - todo
+
+opt_in_rules:
+  - empty_count
+  - fatal_error_message
+  - first_where
+  - force_unwrapping
+  - implicitly_unwrapped_optional
+  - overridden_super_call
+  - redundant_nil_coalescing
+  - strict_fileprivate
+  - unneeded_parentheses_in_closure_argument
+  - unused_import
+  - vertical_whitespace_closing_braces
+  - yoda_condition
+
+analyzer_rules:
+  - unused_declaration
+
+included:
+  - Sources
+  - Tests
+  - Examples
+
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+
+line_length:
+  warning: 140
+  error: 180
+  ignores_urls: true
+  ignores_comments: true
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 500
+
+custom_rules:
+  no_userdefaults_secrets:
+    name: "Insecure Secret Storage in UserDefaults"
+    regex: 'UserDefaults\.standard\.set\(.*(token|password|secret|key|credential|auth).*'
+    message: "Sensitive tokens and credentials must be stored securely in Keychain, not UserDefaults (OWASP MASVS-STORAGE)."
+    severity: error
+
+  no_mainactor_missing_on_observable:
+    name: "Observable ViewModel Missing @MainActor"
+    regex: '@Observable\s+class\s+.*ViewModel'
+    message: "UI-bound ViewModels must be isolated to @MainActor to prevent background thread rendering artifacts."
+    severity: warning
+
+  avoid_body_side_effects:
+    name: "Potential Side Effect in SwiftUI Body"
+    regex: 'var\s+body:\s+some\s+View\s*\{[^\}]*\.(sorted|filter|fetch|download)\('
+    message: "Avoid performing sorting, filtering, or network fetching inside SwiftUI view body. Precompute in ViewModel."
+    severity: warning

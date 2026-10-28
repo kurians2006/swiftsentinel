@@ -24,6 +24,11 @@
       "name": "swiftui-architect",
       "path": "packages/skills/swiftui-architect/SKILL.md",
       "description": "Designs and refactors modern SwiftUI architectures using Observation, Swift 6, and NavigationStack."
+    },
+    {
+      "name": "external-pr-reviewer",
+      "path": "packages/skills/external-pr-reviewer/SKILL.md",
+      "description": "Reviews external GitHub Pull Requests (PRs), GitLab Merge Requests (MRs), and remote Git repositories for security, architecture, and Swift 6 concurrency."
     }
   ]
 }

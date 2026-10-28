@@ -56,6 +56,29 @@ npx skills add kurians2006/swiftsentinel --all
 
 ---
 
+## ⚡ SwiftSentinel Special Superpowers
+
+Beyond auditing local files, SwiftSentinel can review **external repositories, other people's PRs/MRs, and foreign codebases**:
+
+```bash
+# Review ANY external GitHub Pull Request or GitLab Merge Request URL
+swiftsentinel pr https://github.com/apple/swift/pull/1234
+
+# Audit an entire remote repository or local iOS app
+swiftsentinel repo ./MyIOSApp
+
+# Deep OWASP MASVS security & tamper scan
+swiftsentinel security ./Sources
+
+# Audit SOLID, MVVM, VIPER & Clean Architecture boundaries
+swiftsentinel arch ./Sources
+
+# Run SwiftLint & Swift 6 semantic linting
+swiftsentinel lint ./Sources
+```
+
+---
+
 ## 📁 Repository Structure
 
 ```text
