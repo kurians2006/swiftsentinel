@@ -49,12 +49,25 @@ function printUsage() {
   console.log('  swiftsentinel security ./Sources\n');
 }
 
-function fetchUrl(url) {
+function fetchUrl(url, token) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
-    client.get(url, { headers: { 'User-Agent': 'SwiftSentinel-CLI' } }, (res) => {
+    const headers = {
+      'User-Agent': 'SwiftSentinel-CLI'
+    };
+
+    const authToken = token || process.env.GITLAB_TOKEN || process.env.GITHUB_TOKEN;
+    if (authToken) {
+      if (url.includes('gitlab.com') || url.includes('gitlab')) {
+        headers['PRIVATE-TOKEN'] = authToken;
+      } else {
+        headers['Authorization'] = `token ${authToken}`;
+      }
+    }
+
+    client.get(url, { headers }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return fetchUrl(res.headers.location).then(resolve).catch(reject);
+        return fetchUrl(res.headers.location, token).then(resolve).catch(reject);
       }
       if (res.statusCode !== 200) {
         return reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
@@ -145,7 +158,7 @@ function analyzeDiff(diffText) {
   return issues;
 }
 
-async function reviewPR(prUrl) {
+async function reviewPR(prUrl, token) {
   printBanner();
   console.log(`${CYAN}🔍 Fetching external PR diff from:${RESET} ${prUrl}\n`);
 
@@ -157,7 +170,20 @@ async function reviewPR(prUrl) {
   }
 
   try {
-    const diff = await fetchUrl(diffUrl);
+    const diff = await fetchUrl(diffUrl, token);
+
+    // Detect SAML SSO or login page
+    if (diff.trim().startsWith('<!DOCTYPE html>') || diff.includes('SAML single sign-on') || diff.includes('sign_in')) {
+      console.error(`${RED}${BOLD}🔒 Authentication Required (SAML SSO / Private Repository):${RESET}`);
+      console.error(`The repository at ${CYAN}${prUrl}${RESET} is private or protected by enterprise SSO.`);
+      console.error(`To review private GitLab MRs, supply your GitLab Personal Access Token:`);
+      console.error(`  ${YELLOW}swiftsentinel pr "${prUrl}" --token <your-gitlab-token>${RESET}`);
+      console.error(`  or: ${YELLOW}export GITLAB_TOKEN="<your-token>"${RESET}`);
+      console.error(`Alternatively, you can save the diff to a file and run:`);
+      console.error(`  ${YELLOW}swiftsentinel pr --file ./mr20.diff${RESET}\n`);
+      return;
+    }
+
     console.log(`📦 Received diff payload (${diff.length} bytes). Running SwiftSentinel audit rules...\n`);
 
     const issues = analyzeDiff(diff);
@@ -246,11 +272,45 @@ const command = args[0];
 if (!command || command === '--help' || command === '-h') {
   printUsage();
 } else if (command === 'pr') {
-  if (!args[1]) {
-    console.error(`${RED}Error: Missing PR URL. Example: swiftsentinel pr https://github.com/owner/repo/pull/123${RESET}`);
+  const target = args[1];
+  if (!target) {
+    console.error(`${RED}Error: Missing PR URL or options. Example: swiftsentinel pr https://github.com/owner/repo/pull/123${RESET}`);
     process.exit(1);
   }
-  reviewPR(args[1]);
+
+  if (target === '--file' || target === '-f') {
+    const filePath = args[2];
+    if (!filePath || !fs.existsSync(filePath)) {
+      console.error(`${RED}Error: Diff file not found: ${filePath}${RESET}`);
+      process.exit(1);
+    }
+    const diff = fs.readFileSync(filePath, 'utf-8');
+    printBanner();
+    console.log(`${CYAN}🔍 Reviewing local diff from file:${RESET} ${filePath}\n`);
+    const issues = analyzeDiff(diff);
+    // Print findings...
+    if (issues.length === 0) {
+      console.log(`${GREEN}${BOLD}✅ Clean Review: No Swift 6, Security, or Architecture violations detected!${RESET}\n`);
+    } else {
+      console.log(`${BOLD}📋 SwiftSentinel Review Findings (${issues.length} detected):${RESET}\n`);
+      for (const issue of issues) {
+        const badge = issue.severity === 'CRITICAL' ? `${RED}[🚨 CRITICAL]${RESET}` :
+                      issue.severity === 'WARNING' ? `${YELLOW}[⚠️  WARNING]${RESET}` :
+                      `${BLUE}[💡 OPTIMIZATION]${RESET}`;
+        console.log(`${badge} ${BOLD}${issue.category}${RESET}`);
+        console.log(`  File: ${CYAN}${issue.file || 'Unknown'}${RESET}`);
+        console.log(`  Code: "${issue.snippet}"`);
+        console.log(`  Resolution: ${issue.message}\n`);
+      }
+    }
+  } else {
+    let token = null;
+    const tokenIndex = args.indexOf('--token');
+    if (tokenIndex !== -1 && args[tokenIndex + 1]) {
+      token = args[tokenIndex + 1];
+    }
+    reviewPR(target, token);
+  }
 } else if (command === 'repo' || command === 'security' || command === 'arch' || command === 'lint') {
   scanLocalPath(args[1]);
 } else if (command === 'version' || command === '-v') {
