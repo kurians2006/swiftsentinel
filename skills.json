@@ -29,6 +29,11 @@
       "name": "external-pr-reviewer",
       "path": "packages/skills/external-pr-reviewer/SKILL.md",
       "description": "Reviews external GitHub Pull Requests (PRs), GitLab Merge Requests (MRs), and remote Git repositories for security, architecture, and Swift 6 concurrency."
+    },
+    {
+      "name": "ios-health-check",
+      "path": "packages/skills/ios-health-check/SKILL.md",
+      "description": "Performs fixed-scope technical investigations, root-cause analyses, crash debugging, and generates executive App Health Check reports."
     }
   ]
 }
